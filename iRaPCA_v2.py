@@ -46,8 +46,10 @@ def img_to_bytes(img_path):
     encoded = base64.b64encode(img_bytes).decode()
     return encoded
 
-header_html = "<img src='data:image/png;base64,{}' class='img-fluid'>".format(img_to_bytes("cropped-header.png"))
-st.markdown(header_html, unsafe_allow_html=True,)
+from PIL import Image
+image = Image.open('cropped-header-irapca.png')
+st.image(image)
+
 
 
 # Introduction
@@ -76,8 +78,8 @@ The next workflow summarizes the steps performed by this method:
 #     - there are no more clusters that exceed the established relationship or
 #     - the maximum number of rounds is exceeded
 
-from PIL import Image
-image = Image.open(r'C:\Users\Lucas\Desktop\PAPER CLUSTERING\Scripts\clustering_workflow.png')
+
+image = Image.open('workflow_iRaPCA.png')
 st.image(image, caption='Clustering Workflow')
 
 st.markdown("""

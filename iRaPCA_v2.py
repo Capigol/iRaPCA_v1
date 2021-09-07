@@ -148,6 +148,15 @@ else:
     graficar_silhouette = True
     graficar_scatter = True
 
+    
+st.sidebar.title(":speech_balloon: Contact Us")
+st.sidebar.info(
+"""
+If you are looking to contact us, please
+[:e-mail:](mailto:lideb@biol.unlp.edu.ar) or [Twitter](https://twitter.com/LIDeB_UNLP)
+""")
+    
+    
 #%%
 
 ### Reading/calculating molecular descriptors ###

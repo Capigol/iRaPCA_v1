@@ -13,14 +13,7 @@ of new drug candidates to treat epilepsy and neglected tropical diseases.
 
 **iRaPCA WebApp**
 
-Clustering of molecules implies the organization of a group of molecules into smaller subgroups (clusters) with similar features.
-Typical applications of this methodology involve the representative splitting of datasets for QSAR and the selection of representative
-in silico hits from in silico screening experiments for acquisition and submission to experimental confirmation.
-iRaPCA Clustering is a clustering strategy based on an iterative combination of the random subspace approach (feature bagging),
-dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k and
-the best subset of descriptors are selected from plots of silhouette coefficient against different k values and subsets.
-Different validation metrics can be downloaded once the process have finished. A number of graphs may be built and readily downloaded
-through a simple click. 
+iRaPCA Clustering is a clustering strategy based on an iterative combination of the random subspace approach (feature bagging), dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k and the best subset of descriptors are selected from plots of silhouette coefficient against different k values and subsets. Different validation metrics can be downloaded once the process has finished. A number of graphs may be built and readily downloaded through a simple click.
 
 
 If you are looking to contact us, please send a mail to lideb@biol.unlp.edu.ar or contact us by Twitter (https://twitter.com/LIDeB_UNLP)

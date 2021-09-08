@@ -779,7 +779,7 @@ if uploaded_file_1 is not None:
         st.markdown(":point_down: **Here you can download your settings**", unsafe_allow_html=True)
         st.markdown(filedownload2(settings_df), unsafe_allow_html=True)
         st.balloons()  
-        st.cache()
+
 else:
     st.info('Awaiting for TXT file to be uploaded.')
     if st.button('Press to use Example Dataset'):

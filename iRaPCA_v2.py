@@ -131,7 +131,7 @@ if clustering_setting == True:
     maximo_porcentaje_del_total = st.sidebar.slider('Max relation "cluster/total"', 0.0, 1.0, 0.3, 0.1)
     vueltas_maximas = st.sidebar.slider('Max nº of rounds', 1, 10, 5, 1)
     num_pca = st.sidebar.slider('PCAs', 2, 3, 2, 1)
-    ignore_error = st.sidebar.checkbox('Ignore error in smiles',value=True)
+    ignore_error = st.sidebar.checkbox('Ignore error in SMILES',value=True)
     st.sidebar.header('Type of Plots')
     graficar_sunburnt = st.sidebar.checkbox('Sunburn',value=True)
     graficar_silhouette = st.sidebar.checkbox('Silhouette vs k',value=True)
@@ -207,32 +207,32 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
                             freeze_support()
                             descriptor1 = calc(mol)
                             resu = descriptor1.asdict()
-                            solo_nombre = {'NAME' : f'Smiles_{i+1}'}
+                            solo_nombre = {'NAME' : f'SMILES_{i+1}'}
                             solo_nombre.update(resu)
                             data1x = data1x.append(solo_nombre, ignore_index = True)
                             t.markdown("Progress: Molecule " + str(i+1) +"/" + str(len(suppl)))   
                         except:
-                            st.error("**Oh no! There is a problem with descriptor calculation of some smiles.**  :confused:")
-                            st.markdown("**Please check your smiles number: **" + str(i+1))
+                            st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
+                            st.markdown("**Please check your SMILES number: **" + str(i+1))
                             st.markdown(" :point_down: **Try using our standarization tool before clustering **")
                             st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
                             st.stop()
                     else:
                         # if ignore_error == True:
                         problematic_smiles.append(i)
-                            # st.markdown("In line " + str(i+1) + " you have a problematic (or empty) smiles. We have omitted it")
+                            # st.markdown("In line " + str(i+1) + " you have a problematic (or empty) SMILES. We have omitted it")
                         # else:
-                        #     st.error("**Oh no! There is a problem with descriptor calculation of one smiles.**  :confused:")
-                        #     st.markdown("**Please check your smiles number: **" + str(i+1))
+                        #     st.error("**Oh no! There is a problem with descriptor calculation of one SMILES.**  :confused:")
+                        #     st.markdown("**Please check your SMILES number: **" + str(i+1))
                         #     st.markdown(" :point_down: **Try using our standarization tool before clustering **")
                         #     st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
                         #     st.stop()
         if ignore_error == True:
             if len(problematic_smiles) > 0:
-                st.markdown("Lines " + str(problematic_smiles) + " have problematic (or empty) smiles. We have omitted them.")
+                st.markdown("Lines " + str(problematic_smiles) + " have problematic (or empty) SMILES. We have omitted them.")
         else:
-            st.error("**Oh no! There is a problem with descriptor calculation of some smiles.**  :confused:")
-            st.markdown("**Please check your smiles number: **" + str(problematic_smiles))
+            st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
+            st.markdown("**Please check your SMILES number: **" + str(problematic_smiles))
             st.markdown(" :point_down: **Try using our standarization tool before clustering **")
             st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
 

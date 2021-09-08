@@ -22,4 +22,4 @@ Different validation metrics can be downloaded once the process have finished. A
 through a simple click. 
 
 
-If you are looking to contact us, please send a mail to lideb@biol.unlp.edu.ar or contact us by Twitter (@LIDeB_UNLP)
+If you are looking to contact us, please send a mail to lideb@biol.unlp.edu.ar or contact us by Twitter (https://twitter.com/LIDeB_UNLP)

@@ -62,9 +62,9 @@ st.write("""
 # LIDeB Tools - iRaPCA
 
 iRaPCA Clustering is a clustering strategy based on an iterative combination of the random subspace approach (feature bagging),
-dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k and
-the best subset of descriptors are selected from plots of silhouette coefficient against different k values and subsets.
-Different validation metrics can be downloaded once the process have finished. A number of graphs may be built and readily downloaded
+dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k
+and the best subset of descriptors are selected from plots of silhouette coefficient against different k values and subsets.
+Different validation metrics can be downloaded once the process has finished. A number of graphs may be built and readily downloaded
 through a simple click. 
 
 The tool uses the following packages [RDKIT](https://www.rdkit.org/docs/index.html), [Mordred](https://github.com/mordred-descriptor/mordred), [Scikit-learn](https://scikit-learn.org/stable/), [Plotly](https://plotly.com/python/), [Seaborn](https://seaborn.pydata.org/index.html)
@@ -101,16 +101,19 @@ st.markdown("""
 st.sidebar.header('Molecular descriptors')
 molecular_descriptors = st.sidebar.checkbox('Check ONLY if you have previously calculated the molecular descriptors')
 if molecular_descriptors == True:
-    uploaded_file_1 = st.sidebar.file_uploader("Upload your descriptors in a TXT file. Your file should have a column called 'NAME'", type=["txt"])
+    uploaded_file_1 = st.sidebar.file_uploader("Upload your molecular descriptors in a TXT file. Your file should have a column called 'NAME'", type=["txt"])
     descriptores_calculados = "Si"
+    st.sidebar.markdown("""
+    [Example TXT molecular descriptor file](example_descriptors.txt)
+    """)
+
 else:
-    st.sidebar.header('Upload your smiles')
-    uploaded_file_1 = st.sidebar.file_uploader("Upload your smiles in a TXT file", type=["txt"])
-    descriptores_calculados = "No"
-    
-st.sidebar.markdown("""
-[Example TXT input file](molecules_1.txt)
-""")
+    st.sidebar.header('Upload your SMILES')
+    uploaded_file_1 = st.sidebar.file_uploader("Upload a TXT file with one SMILES per line", type=["txt"])
+    descriptores_calculados = "No"    
+    st.sidebar.markdown("""
+    [Example TXT input file](molecules_1.txt)
+    """)
 
 clustering_setting = st.sidebar.checkbox('Check to change the default configuration')
 if clustering_setting == True:

@@ -112,7 +112,7 @@ else:
     uploaded_file_1 = st.sidebar.file_uploader("Upload a TXT file with one SMILES per line", type=["txt"])
     descriptores_calculados = "No"    
     st.sidebar.markdown("""
-    [Example TXT input file]((https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_molecules.txt)
+    [Example TXT input file](https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_molecules.txt)
     """)
 
 clustering_setting = st.sidebar.checkbox('Check to change the default configuration')

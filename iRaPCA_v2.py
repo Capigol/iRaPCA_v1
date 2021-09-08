@@ -104,7 +104,7 @@ if molecular_descriptors == True:
     uploaded_file_1 = st.sidebar.file_uploader("Upload your molecular descriptors in a TXT file. Your file should have a column called 'NAME'", type=["txt"])
     descriptores_calculados = "Si"
     st.sidebar.markdown("""
-    [Example TXT molecular descriptor file](example_descriptors.txt)
+    [Example TXT molecular descriptor file](https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_descriptors.txt)
     """)
 
 else:
@@ -112,7 +112,7 @@ else:
     uploaded_file_1 = st.sidebar.file_uploader("Upload a TXT file with one SMILES per line", type=["txt"])
     descriptores_calculados = "No"    
     st.sidebar.markdown("""
-    [Example TXT input file](molecules_1.txt)
+    [Example TXT input file]((https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_molecules.txt)
     """)
 
 clustering_setting = st.sidebar.checkbox('Check to change the default configuration')

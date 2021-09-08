@@ -50,15 +50,22 @@ from PIL import Image
 image = Image.open('cropped-header-irapca.png')
 st.image(image)
 
-
+st.markdown("![Twitter Follow](https://img.shields.io/twitter/follow/LIDeB_UNLP?style=social)")
+st.subheader(":pushpin:" "About Us")
+st.markdown("We are a team interested to develop new tools cheminformatics for using in areas of computer-assisted drug design and machine learning in drug discovery. We belong to Laboratory of Bioactive Research and Development (LIDeB) of the National University of La Plata, Argentina. Our research group is focused on rational designing of new drug candidates and drug repurposing for epilepsy and neglected tropical diseases such as Chagas disease, leishmaniasis, malaria.Another important goal of our group is the development and caracterization of nanocarriers. The work developed by our group has resulted in publications in international indexed journals, abstracts, congress and awards in national and international of Medicinal and Computational Chemistry.")
+st.markdown(":computer:""**Web Site** " "<https://lideb.biol.unlp.edu.ar>")
 
 # Introduction
 #---------------------------------#
 
 st.write("""
-# LIDeB Tools - Molecules Clustering based in Descriptors
+# LIDeB Tools - iRaPCA
 
-**It is a free web-application to cluster molecules based in molecular descriptors**
+iRaPCA Clustering is a clustering strategy based on an iterative combination of the random subspace approach (feature bagging),
+dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k and
+the best subset of descriptors are selected from plots of silhouette coefficient against different k values and subsets.
+Different validation metrics can be downloaded once the process have finished. A number of graphs may be built and readily downloaded
+through a simple click. 
 
 The tool uses the following packages [RDKIT](https://www.rdkit.org/docs/index.html), [Mordred](https://github.com/mordred-descriptor/mordred), [Scikit-learn](https://scikit-learn.org/stable/), [Plotly](https://plotly.com/python/), [Seaborn](https://seaborn.pydata.org/index.html)
 

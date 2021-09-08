@@ -786,7 +786,7 @@ if uploaded_file_1 is not None:
 else:
     st.info('Awaiting for TXT file to be uploaded.')
     if st.button('Press to run with the Example Dataset'):
-        uploaded_file_1 = open(r"C:\Users\Lucas\Desktop\PAPER CLUSTERING\pruebas\molecules_1.txt","r")
+        uploaded_file_1 = open("molecules_1.txt","r")
         st.markdown("**Running with the example dataset**", unsafe_allow_html=True)
         clustering_final_function(uploaded_file_1)
 

@@ -168,7 +168,7 @@ If you are looking to contact us, please
 
 ### Reading/calculating molecular descriptors ###
 
-def calcular_descriptores(uploaded_file_1):
+def calcular_descriptores(uploaded_file_1,descriptores_calculados):
     
     if descriptores_calculados == "Si":
         descriptores = pd.read_csv(uploaded_file_1, sep='\t', delimiter=None, header='infer', names=None)
@@ -252,7 +252,7 @@ def calcular_descriptores(uploaded_file_1):
 
 ### Removing low variance descriptors ###
 
-def descriptores_baja_variancia(descriptores, threshold_variance: float):
+def descriptores_baja_variancia(descriptores, vuelta, threshold_variance: float):
     selector = VarianceThreshold(threshold_variance)       
     selector.fit(descriptores)                              
     descriptores_ok = descriptores[descriptores.columns[selector.get_support(indices=True)]]
@@ -267,7 +267,7 @@ def descriptores_baja_variancia(descriptores, threshold_variance: float):
 
 ### Subsetting ###
 
-def generar_subset(descriptores_ok, num_subsets: int, coef_correlacion: str, limite_correlacion: float):
+def generar_subset(descriptores_ok, num_subsets: int, coef_correlacion: str, limite_correlacion: float, vuelta):
     subsets_ok=[]
     i=0
     while (i < num_subsets): 
@@ -369,7 +369,7 @@ def grafica_silhouette(subsets_seleccionados,tabla_final,num_pca: int, range_n_c
 
 ### Clusters adittional information ###
 
-def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, cluster_mejor: int, subset_mejor: int, clusters_padre, vuelta):
+def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, cluster_mejor: int, subset_mejor: int, clusters_padre, vuelta, descriptores):
     
     subset_seleccionado_normalizado = normalizar_descriptores(subset_seleccionado)
     pca = PCA(n_components = num_pca)
@@ -403,7 +403,7 @@ def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, clust
 
 ### Scatter plot with PCAs for each selected subset and K ###
 
-def grafica_scatter(moleculas_cluster):
+def grafica_scatter(moleculas_cluster,subset_mejor,cluster_mejor):
     if graficar_scatter:
         tabla_final_moleculas = moleculas_cluster.copy()
         tabla_final_moleculas['CLUSTER'] = tabla_final_moleculas['CLUSTER'].astype(str)
@@ -425,7 +425,7 @@ def grafica_scatter(moleculas_cluster):
 
 ### Random cluster evaluations ###
 
-def cluster_random(pcas, molec_name):
+def cluster_random(pcas, molec_name,cluster_mejor):
     compilado_silhoutte = []
     compilado_db = []
     compilado_ch = []
@@ -460,12 +460,12 @@ def cluster_random(pcas, molec_name):
 
 ### Clustering performance determination ###
 
-def coeficientes_clustering(pcas, df_molecula_cluster_actual, cuantos_grupos, molec_name):
+def coeficientes_clustering(pcas, df_molecula_cluster_actual, cluster_mejor, molec_name,vuelta):
     from sklearn.mixture import GaussianMixture
 
-    sil_random, sil_random_st, db_random, db_random_st, ch_random, ch_random_st, dunn_random, dunn_random_st = cluster_random(pcas, molec_name)
+    sil_random, sil_random_st, db_random, db_random_st, ch_random, ch_random_st, dunn_random, dunn_random_st = cluster_random(pcas, molec_name,cluster_mejor)
     silhouette_avg = round(silhouette_score(pcas, np.ravel(df_molecula_cluster_actual)),4)
-    gmm = GaussianMixture(n_components=cuantos_grupos, init_params='kmeans')
+    gmm = GaussianMixture(n_components=cluster_mejor, init_params='kmeans')
     gmm.fit(pcas)
     # bic_score = gmm.bic(pcas)
     db_score = round(davies_bouldin_score(pcas, np.ravel(df_molecula_cluster_actual)),4)
@@ -523,7 +523,7 @@ def clusters_con_mayor_porcentaje(lista_final_conteo, maximo_porcentaje_del_tota
 
 ### Hierarchical Clustering ###
 
-def asignar_moleculas_para_RDCPCA(lista_cluster_para_seguir, lista_cluster_moleculas, moleculas_compiladas):
+def asignar_moleculas_para_RDCPCA(lista_cluster_para_seguir, lista_cluster_moleculas, moleculas_compiladas, vuelta):
     lista_nuevas_moleculas = []
     for p, cluster_para_seguir_ in enumerate(lista_cluster_para_seguir):
         if cluster_para_seguir_ is not None:
@@ -563,7 +563,7 @@ def bar_plot_counts(dataframe_final_1):
 #%%
 ### Settings file ###
 
-def setting_info():
+def setting_info(vuelta,dataframe_final_1):
 
     today = date.today()
     fecha = today.strftime("%d/%m/%Y")
@@ -634,157 +634,162 @@ def filedownload4(df):
 
 #%%
 
+
 ### Running ###
+def clustering_final_function(uploaded_file_1):
+    lista_nuevas_moleculas = [1]
+    vuelta = 1
+    moleculas_compiladas = {}
+    todos_silhouette = []
+    lista_cluster_padres = ['']
+    lista_cluster_moleculas = []
+    lista_descriptores = []
+    validation_all = []
+    descriptores = calcular_descriptores(uploaded_file_1,vuelta)
+    lista_descriptores.append(descriptores)
+
+    while len(lista_nuevas_moleculas)>0 and vuelta <= vueltas_maximas:
+
+        lista_subsets_ok = []
+        lista_tablas_finales = []
+        lista_final_conteo = []
+        sunburnt_nuevos = pd.Series(dtype="float64")
+
+        for descriptores_ in lista_descriptores:
+            descriptores_ok = descriptores_baja_variancia(descriptores_, vuelta, threshold_variance)
+            subsets_ok = generar_subset(descriptores_ok, num_subsets, coef_correlacion, limite_correlacion,vuelta)
+            lista_subsets_ok.append(subsets_ok)
+
+        for subsets_ok_ in lista_subsets_ok:
+            try:
+                tabla_final, subsets_seleccionados = clustering(subsets_ok_, min_desc_subset, max_desc_subset, range_n_clusters, num_pca)
+                grafica_silhouette(subsets_seleccionados,tabla_final, num_pca, range_n_clusters, limite_correlacion)
+                lista_tablas_finales.append(tabla_final)
+            except ValueError:
+                if vuelta == 1:
+                    st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
+                    st.stop()
+                else:
+                    for i, cluster_moleculas_ in enumerate(lista_cluster_moleculas):
+                        for index, row in cluster_moleculas_.iterrows():
+                            moleculas_compiladas[index] = row['Cluster, padre']
+                    st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
+                    break
+
+        lista_cluster_moleculas = []
+        for j, tabla_final_ in enumerate(lista_tablas_finales):
+            silhouette_max = tabla_final_.values.max()
+            todos_silhouette.append(silhouette_max)
+            cluster_mejor, subset_mejor = getIndexes(tabla_final_, silhouette_max)
+            subset_mejor_sil = lista_subsets_ok[j][subset_mejor]
+            pcas, cluster_moleculas, final_conteo = moleculas_en_cluster_PCA_clustering(subset_mejor_sil, num_pca, cluster_mejor, subset_mejor, lista_cluster_padres[j], vuelta, descriptores)
+            grafica_scatter(cluster_moleculas,subset_mejor,cluster_mejor)
+            st.write(f'Maximum coefficient of silhouette obtained was obtained in the subset {subset_mejor} with {cluster_mejor} clusters\n')
+    
+            if vuelta == 1:
+                sunburnt = pd.DataFrame(cluster_moleculas['Cluster, padre'])
+            else:
+                sunburnt_agregar = cluster_moleculas['Cluster, padre']
+                sunburnt_nuevos = sunburnt_nuevos.append(sunburnt_agregar)       
+            validation_round = coeficientes_clustering(pcas, cluster_moleculas['CLUSTER'], cluster_mejor, cluster_moleculas.index,vuelta)
+            validation_all.append(validation_round)
+            lista_cluster_moleculas.append(cluster_moleculas)
+            lista_final_conteo.append(final_conteo)
+
+        if vuelta != 1:
+            sunburnt_nuevos = sunburnt_nuevos.to_frame()
+            sunburnt_nuevos.rename(columns={0: f'Cluster, padre, V{vuelta}'},inplace = True)
+            sunburnt = pd.concat([sunburnt,sunburnt_nuevos], axis = 1)
+    
+        lista_cluster_para_seguir, lista_cluster_padres = clusters_con_mayor_porcentaje(lista_final_conteo, maximo_porcentaje_del_total)
+    
+        if len(lista_cluster_para_seguir) != 0:
+            lista_nuevas_moleculas, moleculas_compiladas = asignar_moleculas_para_RDCPCA(lista_cluster_para_seguir, lista_cluster_moleculas, moleculas_compiladas,vuelta)
+        else:
+            for i, cluster_moleculas_ in enumerate(lista_cluster_moleculas):
+                for index, row in cluster_moleculas_.iterrows():
+                    moleculas_compiladas[index] = row['Cluster, padre']
+            break
+            
+        lista_descriptores = []
+        for nuevas_moleculas_ in lista_nuevas_moleculas:
+            descriptores_nuevas_molec = []
+            for molec in nuevas_moleculas_:
+                row = descriptores.loc[molec]
+                descriptores_nuevas_molec.append(row)
+            descriptores_nuevas_molec = pd.DataFrame(descriptores_nuevas_molec)
+            lista_descriptores.append(descriptores_nuevas_molec)
+    
+        vuelta += 1
+        
+    if graficar_sunburnt:
+        sunburnt.insert(loc = 0, column = 'All', value = 'All')
+        sunburnt = sunburnt.fillna(' ')
+        sunburnt['Moléculas'] = 1
+
+        fig3 = plt1.sunburst(sunburnt, path = sunburnt.iloc[:,0:-1], values = 'Moléculas')
+        fig3.update_layout(title = "Sunburst Plot", title_x=0.5,
+        title_font = dict(size=28, family='Calibri', color='black'))
+        fig3.update_layout(margin = dict(t=60,r=20,b=20,l=20),
+        autosize = True)
+        
+    dataframe_final = pd.DataFrame.from_dict(moleculas_compiladas, orient = 'index')
+    dataframe_final.rename(columns = {0: 'CLUSTER'}, inplace = True)
+    dataframe_final.index.rename("NAME", inplace = True)
+    # dataframe_final.sort_index(inplace=True)
+    dataframe_final['key'] = dataframe_final.index
+    dataframe_final['key'] = dataframe_final['key'].str.split('_').str[1].astype(int)
+    dataframe_final = dataframe_final.sort_values('key', ascending=True).drop('key', axis=1)
+    dataframe_final_1 = dataframe_final.value_counts().to_frame()
+    dataframe_final_1.rename(columns = {0: 'Moleculas'}, inplace = True)
+            
+    validation_final = pd.DataFrame(validation_all)
+    validation_final.columns = ["Silouette", "random silhoutte", "SD random sil", "DB Score", "DB random", "SD DB random","CH score", "CH random", "SD CH random", "Dunn score", "Dunn Random", "Dunn SD random"]
+    
+    if len(lista_nuevas_moleculas) == 0:
+        vuelta-=1
+        st.write(f'\nThere is no more cluster with a relationship greater than selected value: {maximo_porcentaje_del_total}\n')
+    else:
+        if vuelta == vueltas_maximas+1:
+            vuelta-=1
+            st.write(f'\nThe maximum number of laps was reached {vueltas_maximas}\n')
+    
+    # st.write(f'\nAfter {vuelta} rounds the mean of the silhouette coefficients was {round(mean(todos_silhouette), 4)}')
+    st.write(f'The {descriptores.shape[0]} molecules were distributed in {len(dataframe_final_1)} clusters')
+    
+    if graficar_sunburnt == True:
+        st.markdown(":point_down: **Here you can see the Sunburst Plot**", unsafe_allow_html=True)
+        st.plotly_chart(fig3)
+
+    st.markdown(":point_down: **Here you can see the cluster distribution**", unsafe_allow_html=True)
+    plot = bar_plot_counts(dataframe_final_1)
+    
+    st.markdown(":point_down: **Here you can download the cluster assignations**", unsafe_allow_html=True)
+    st.markdown(filedownload(dataframe_final), unsafe_allow_html=True)
+
+    st.markdown(":point_down: **Here you can download a table with the cluster distibutions**", unsafe_allow_html=True)
+    st.markdown(filedownload1(dataframe_final_1), unsafe_allow_html=True)
+    
+    st.markdown(":point_down: **Here you can download a table with the validation metrics**", unsafe_allow_html=True)
+    st.markdown(filedownload4(validation_final), unsafe_allow_html=True)
+    
+    settings_df = setting_info(vuelta,dataframe_final_1)
+    st.markdown(":point_down: **Here you can download your settings**", unsafe_allow_html=True)
+    st.markdown(filedownload2(settings_df), unsafe_allow_html=True)
+    st.balloons()  
+    return
 
 if uploaded_file_1 is not None:
     run = st.button("RUN")
     if run == True:
-        lista_nuevas_moleculas = [1]
-        vuelta = 1
-        moleculas_compiladas = {}
-        todos_silhouette = []
-        lista_cluster_padres = ['']
-        lista_cluster_moleculas = []
-        lista_descriptores = []
-        validation_all = []
-        descriptores = calcular_descriptores(uploaded_file_1)
-        lista_descriptores.append(descriptores)
-
-        while len(lista_nuevas_moleculas)>0 and vuelta <= vueltas_maximas:
-
-            lista_subsets_ok = []
-            lista_tablas_finales = []
-            lista_final_conteo = []
-            sunburnt_nuevos = pd.Series(dtype="float64")
-
-            for descriptores_ in lista_descriptores:
-                descriptores_ok = descriptores_baja_variancia(descriptores_, threshold_variance)
-                subsets_ok = generar_subset(descriptores_ok, num_subsets, coef_correlacion, limite_correlacion)
-                lista_subsets_ok.append(subsets_ok)
-
-            for subsets_ok_ in lista_subsets_ok:
-                try:
-                    tabla_final, subsets_seleccionados = clustering(subsets_ok_, min_desc_subset, max_desc_subset, range_n_clusters, num_pca)
-                    grafica_silhouette(subsets_seleccionados,tabla_final, num_pca, range_n_clusters, limite_correlacion)
-                    lista_tablas_finales.append(tabla_final)
-                except ValueError:
-                    if vuelta == 1:
-                        st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
-                        st.stop()
-                    else:
-                        for i, cluster_moleculas_ in enumerate(lista_cluster_moleculas):
-                            for index, row in cluster_moleculas_.iterrows():
-                                moleculas_compiladas[index] = row['Cluster, padre']
-                        st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
-                        break
-
-            lista_cluster_moleculas = []
-            for j, tabla_final_ in enumerate(lista_tablas_finales):
-                silhouette_max = tabla_final_.values.max()
-                todos_silhouette.append(silhouette_max)
-                cluster_mejor, subset_mejor = getIndexes(tabla_final_, silhouette_max)
-                subset_mejor_sil = lista_subsets_ok[j][subset_mejor]
-                pcas, cluster_moleculas, final_conteo = moleculas_en_cluster_PCA_clustering(subset_mejor_sil, num_pca, cluster_mejor, subset_mejor, lista_cluster_padres[j], vuelta)
-                grafica_scatter(cluster_moleculas)
-                st.write(f'Maximum coefficient of silhouette obtained was obtained in the subset {subset_mejor} with {cluster_mejor} clusters\n')
-        
-                if vuelta == 1:
-                    sunburnt = pd.DataFrame(cluster_moleculas['Cluster, padre'])
-                else:
-                    sunburnt_agregar = cluster_moleculas['Cluster, padre']
-                    sunburnt_nuevos = sunburnt_nuevos.append(sunburnt_agregar)       
-                validation_round = coeficientes_clustering(pcas, cluster_moleculas['CLUSTER'], cluster_mejor, cluster_moleculas.index)
-                validation_all.append(validation_round)
-                lista_cluster_moleculas.append(cluster_moleculas)
-                lista_final_conteo.append(final_conteo)
-    
-            if vuelta != 1:
-                sunburnt_nuevos = sunburnt_nuevos.to_frame()
-                sunburnt_nuevos.rename(columns={0: f'Cluster, padre, V{vuelta}'},inplace = True)
-                sunburnt = pd.concat([sunburnt,sunburnt_nuevos], axis = 1)
-        
-            lista_cluster_para_seguir, lista_cluster_padres = clusters_con_mayor_porcentaje(lista_final_conteo, maximo_porcentaje_del_total)
-        
-            if len(lista_cluster_para_seguir) != 0:
-                lista_nuevas_moleculas, moleculas_compiladas = asignar_moleculas_para_RDCPCA(lista_cluster_para_seguir, lista_cluster_moleculas, moleculas_compiladas)
-            else:
-                for i, cluster_moleculas_ in enumerate(lista_cluster_moleculas):
-                    for index, row in cluster_moleculas_.iterrows():
-                        moleculas_compiladas[index] = row['Cluster, padre']
-                break
-                
-            lista_descriptores = []
-            for nuevas_moleculas_ in lista_nuevas_moleculas:
-                descriptores_nuevas_molec = []
-                for molec in nuevas_moleculas_:
-                    row = descriptores.loc[molec]
-                    descriptores_nuevas_molec.append(row)
-                descriptores_nuevas_molec = pd.DataFrame(descriptores_nuevas_molec)
-                lista_descriptores.append(descriptores_nuevas_molec)
-        
-            vuelta += 1
-            
-        if graficar_sunburnt:
-            sunburnt.insert(loc = 0, column = 'All', value = 'All')
-            sunburnt = sunburnt.fillna(' ')
-            sunburnt['Moléculas'] = 1
-    
-            fig3 = plt1.sunburst(sunburnt, path = sunburnt.iloc[:,0:-1], values = 'Moléculas')
-            fig3.update_layout(title = "Sunburst Plot", title_x=0.5,
-            title_font = dict(size=28, family='Calibri', color='black'))
-            fig3.update_layout(margin = dict(t=60,r=20,b=20,l=20),
-            autosize = True)
-            
-        dataframe_final = pd.DataFrame.from_dict(moleculas_compiladas, orient = 'index')
-        dataframe_final.rename(columns = {0: 'CLUSTER'}, inplace = True)
-        dataframe_final.index.rename("NAME", inplace = True)
-        # dataframe_final.sort_index(inplace=True)
-        dataframe_final['key'] = dataframe_final.index
-        dataframe_final['key'] = dataframe_final['key'].str.split('_').str[1].astype(int)
-        dataframe_final = dataframe_final.sort_values('key', ascending=True).drop('key', axis=1)
-        dataframe_final_1 = dataframe_final.value_counts().to_frame()
-        dataframe_final_1.rename(columns = {0: 'Moleculas'}, inplace = True)
-                
-        validation_final = pd.DataFrame(validation_all)
-        validation_final.columns = ["Silouette", "random silhoutte", "SD random sil", "DB Score", "DB random", "SD DB random","CH score", "CH random", "SD CH random", "Dunn score", "Dunn Random", "Dunn SD random"]
-        
-        if len(lista_nuevas_moleculas) == 0:
-            vuelta-=1
-            st.write(f'\nThere is no more cluster with a relationship greater than selected value: {maximo_porcentaje_del_total}\n')
-        else:
-            if vuelta == vueltas_maximas+1:
-                vuelta-=1
-                st.write(f'\nThe maximum number of laps was reached {vueltas_maximas}\n')
-        
-        # st.write(f'\nAfter {vuelta} rounds the mean of the silhouette coefficients was {round(mean(todos_silhouette), 4)}')
-        st.write(f'The {descriptores.shape[0]} molecules were distributed in {len(dataframe_final_1)} clusters')
-        
-        if graficar_sunburnt == True:
-            st.markdown(":point_down: **Here you can see the Sunburst Plot**", unsafe_allow_html=True)
-            st.plotly_chart(fig3)
-
-        st.markdown(":point_down: **Here you can see the cluster distribution**", unsafe_allow_html=True)
-        plot = bar_plot_counts(dataframe_final_1)
-        
-        st.markdown(":point_down: **Here you can download the cluster assignations**", unsafe_allow_html=True)
-        st.markdown(filedownload(dataframe_final), unsafe_allow_html=True)
-    
-        st.markdown(":point_down: **Here you can download a table with the cluster distibutions**", unsafe_allow_html=True)
-        st.markdown(filedownload1(dataframe_final_1), unsafe_allow_html=True)
-        
-        st.markdown(":point_down: **Here you can download a table with the validation metrics**", unsafe_allow_html=True)
-        st.markdown(filedownload4(validation_final), unsafe_allow_html=True)
-        
-        settings_df = setting_info()
-        st.markdown(":point_down: **Here you can download your settings**", unsafe_allow_html=True)
-        st.markdown(filedownload2(settings_df), unsafe_allow_html=True)
-        st.balloons()  
-
+        clustering_final_function(uploaded_file_1)
 else:
     st.info('Awaiting for TXT file to be uploaded.')
-    if st.button('Press to use Example Dataset'):
-        # st.markdown('The **Diabetes** dataset is used as the example.')
-        st.write("We sorry, we don't have a example file yet ;)")
+    if st.button('Press to run with the Example Dataset'):
+        uploaded_file_1 = open(r"C:\Users\Lucas\Desktop\PAPER CLUSTERING\pruebas\molecules_1.txt","r")
+        st.markdown("**Running with the example dataset**", unsafe_allow_html=True)
+        clustering_final_function(uploaded_file_1)
+
   
 #Footer edit
 

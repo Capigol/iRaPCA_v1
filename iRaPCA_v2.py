@@ -52,7 +52,7 @@ st.image(image)
 
 st.markdown("![Twitter Follow](https://img.shields.io/twitter/follow/LIDeB_UNLP?style=social)")
 st.subheader(":pushpin:" "About Us")
-st.markdown("We are a team interested to develop new tools cheminformatics for using in areas of computer-assisted drug design and machine learning in drug discovery. We belong to Laboratory of Bioactive Research and Development (LIDeB) of the National University of La Plata, Argentina. Our research group is focused on rational designing of new drug candidates and drug repurposing for epilepsy and neglected tropical diseases such as Chagas disease, leishmaniasis, malaria.Another important goal of our group is the development and caracterization of nanocarriers. The work developed by our group has resulted in publications in international indexed journals, abstracts, congress and awards in national and international of Medicinal and Computational Chemistry.")
+st.markdown("We are a drug discovery team with an interest in the development of publicly available open-source customizable cheminformatics tools to be used in computer-assisted drug discovery. We belong to the Laboratory of Bioactive Research and Development (LIDeB) of the National University of La Plata (UNLP), Argentina. Our research group is focused on computer-guided drug repurposing and rational discovery of new drug candidates to treat epilepsy and neglected tropical diseases.")
 st.markdown(":computer:""**Web Site** " "<https://lideb.biol.unlp.edu.ar>")
 
 # Introduction

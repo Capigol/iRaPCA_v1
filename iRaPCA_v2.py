@@ -214,8 +214,8 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
                         except:
                             st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
                             st.markdown("**Please check your SMILES number: **" + str(i+1))
-                            st.markdown(" :point_down: **Try using our standarization tool before clustering **")
-                            st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
+                            st.markdown(" :point_down: **Try using our standarization tool to fix the SMILES**")
+                            st.write("[LISTo](https://share.streamlit.io/cbellera/listo/main/LISTo_v1.py)") 
                             st.stop()
                     else:
                         # if ignore_error == True:
@@ -233,8 +233,8 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
         else:
             st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
             st.markdown("**Please check your SMILES number: **" + str(problematic_smiles))
-            st.markdown(" :point_down: **Try using our standarization tool before clustering **")
-            st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
+            st.markdown(" :point_down: **Try using our standarization tool to fix the SMILES**")
+            st.write("[LISTo](https://share.streamlit.io/cbellera/listo/main/LISTo_v1.py)") 
 
         t.markdown("Descriptor calculation have FINISHED")
         

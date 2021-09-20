@@ -89,9 +89,9 @@ The next workflow summarizes the steps performed by this method:
 image = Image.open('workflow_iRaPCA.png')
 st.image(image, caption='Clustering Workflow')
 
-st.markdown("""
-         **To cite the application, please reference XXXXXXXXX**
-         """)
+#st.markdown("""
+#         **To cite the application, please reference XXXXXXXXX**
+#         """)
 
 #%%
 

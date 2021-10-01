@@ -91,7 +91,7 @@ st.image(image, caption='Clustering Workflow')
 
 #st.markdown(":rocket:")
 #st.markdown(":rocket:" "Fast tutorial [iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP)")
-st.markdown(":rocket:" "##**Fast Tutorial** " "[iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP)")
+st.markdown(":rocket:" "**Fast Tutorial** " "[iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP)")
 
 #st.markdown("""
 #         **To cite the application, please reference XXXXXXXXX**

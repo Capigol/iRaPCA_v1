@@ -89,7 +89,7 @@ The next workflow summarizes the steps performed by this method:
 image = Image.open('workflow_iRaPCA.png')
 st.image(image, caption='Clustering Workflow')
 
-st.markdown(🚀 Fast tutorial [iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP))
+st.write(:rocket: Fast tutorial [iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP))
 
 #st.markdown("""
 #         **To cite the application, please reference XXXXXXXXX**

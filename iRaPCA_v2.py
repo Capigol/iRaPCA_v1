@@ -59,7 +59,7 @@ st.markdown("We are a drug discovery team with an interest in the development of
 #---------------------------------#
 
 st.write("""
-# LIDeB Tools - iRaPCA
+# LIDeB Tools - iRaPCA (Beta version)
 
 iRaPCA Clustering is a clustering strategy based on an iterative combination of the random subspace approach (feature bagging),
 dimensionality reduction through Principal Component Analysis (PCA) and the k-means algorithm. The optimal number of clusters k

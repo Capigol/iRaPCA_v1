@@ -154,7 +154,7 @@ else:
     min_n_clusters = 2
     max_n_clusters= 20
     range_n_clusters = list(range(min_n_clusters,max_n_clusters,1))
-    maximo_porcentaje_del_total = 0.4
+    maximo_porcentaje_del_total = 0.3
     vueltas_maximas = 5
     num_pca = 2
     ignore_error = True

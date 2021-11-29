@@ -152,7 +152,7 @@ else:
     min_desc_subset = 4
     max_desc_subset = 25
     min_n_clusters = 2
-    max_n_clusters= 20
+    max_n_clusters= 25
     range_n_clusters = list(range(min_n_clusters,max_n_clusters,1))
     maximo_porcentaje_del_total = 0.3
     vueltas_maximas = 5

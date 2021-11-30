@@ -402,9 +402,9 @@ def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, clust
     moleculas_cluster = pd.merge(df_subset_PCA, df_cluster_con_cluster_padre, left_index = True, right_index= True)
 
     final_conteo = pd.DataFrame(moleculas_cluster['Cluster, padre'].value_counts())
-    final_conteo.rename(columns = {'Cluster, padre':'Moleculas'}, inplace = True)
+    final_conteo.rename(columns = {'Cluster, padre':'Molecules'}, inplace = True)
     final_conteo.index.names = ['Cluster']
-    final_conteo['Relacion'] = final_conteo['Moleculas']/descriptores.shape[0]
+    final_conteo['Relacion'] = final_conteo['Molecules']/descriptores.shape[0]
     return pcas, moleculas_cluster, final_conteo
 
 #%%

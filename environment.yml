@@ -13,7 +13,7 @@ dependencies:
         - scikit-learn==0.22.2.post1
         - xgboost==1.0.2
         - molvs
-        - streamlit==0.82.0
+        - streamlit==1.2.0
         - streamlit_tags
         - mordred
         - matplotlib==3.3.2

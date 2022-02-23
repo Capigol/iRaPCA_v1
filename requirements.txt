@@ -4,3 +4,5 @@ rdkit==2020.09.1.0
 molvs
 mordred
 validclust
+pandas==1.4.1
+nummpy==1.22.2

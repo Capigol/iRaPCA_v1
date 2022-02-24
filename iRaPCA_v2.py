@@ -2,11 +2,13 @@
 """
 Created on Tue Jul 27 11:26:28 2021
 
-@author: Lucas
+@author: LIDeB UNLP
 """
 
-##### NEW CLUSTERING METHOD 4.5.4 #####
+# iRaPCA WebApp
 
+
+#%%
 # Needed packages
 import streamlit as st
 import pandas as pd
@@ -27,8 +29,7 @@ import plotly.graph_objects as go
 import plotly.express as plt1
 import random
 from datetime import date
-import seaborn as sns; sns.set_theme()
-import matplotlib.pyplot as plt
+from molvs import Standardizer
 
 
 #%%
@@ -50,7 +51,7 @@ from PIL import Image
 image = Image.open('cropped-header-irapca.png')
 st.image(image)
 
-st.write("&nbsp[![Website](https://img.shields.io/badge/website-LIDeB-blue)](https://lideb.biol.unlp.edu.ar)&nbsp[![Twitter Follow](https://img.shields.io/twitter/follow/LIDeB_UNLP?style=social)](https://twitter.com/intent/follow?screen_name=LIDeB_UNLP)")
+st.write("[![Website](https://img.shields.io/badge/website-LIDeB-blue)](https://lideb.biol.unlp.edu.ar)[![Twitter Follow](https://img.shields.io/twitter/follow/LIDeB_UNLP?style=social)](https://twitter.com/intent/follow?screen_name=LIDeB_UNLP)")
 st.subheader(":pushpin:" "About Us")
 st.markdown("We are a drug discovery team with an interest in the development of publicly available open-source customizable cheminformatics tools to be used in computer-assisted drug discovery. We belong to the Laboratory of Bioactive Research and Development (LIDeB) of the National University of La Plata (UNLP), Argentina. Our research group is focused on computer-guided drug repurposing and rational discovery of new drug candidates to treat epilepsy and neglected tropical diseases.")
 
@@ -67,30 +68,15 @@ and the best subset of descriptors are selected from plots of silhouette coeffic
 Different validation metrics can be downloaded once the process has finished. A number of graphs may be built and readily downloaded
 through a simple click. 
 
-The tool uses the following packages [RDKIT](https://www.rdkit.org/docs/index.html), [Mordred](https://github.com/mordred-descriptor/mordred), [Scikit-learn](https://scikit-learn.org/stable/), [Plotly](https://plotly.com/python/), [Seaborn](https://seaborn.pydata.org/index.html)
+The tool uses the following packages [RDKIT](https://www.rdkit.org/docs/index.html), [Mordred](https://github.com/mordred-descriptor/mordred), [Scikit-learn](https://scikit-learn.org/stable/), [Plotly](https://plotly.com/python/),[MolVS](https://github.com/mcs07/MolVS),[validclust](https://github.com/crew102/validclust))
 
 The next workflow summarizes the steps performed by this method:
     
 """)
-# - Characterization of molecules through molecular descriptors.
-# - Subsetting of descriptors, dimensionality reduction by correlation filters and PCA analysis.
-# - Clustering of each subset by K-means using a range of K values.
-# - Clustering performance evaluation in each subset by Silhouette Coefficient determination.
-# - Selection of subset and K that get the best Silhouette Coefficient.
-# - Clustering with the best subset and K.
-# - Evaluation of the number of molecules for cluster.
-#     - Clusters that exceed the selected limit in the relation "num of molecules in cluster/total number of mulecules" repeats the process.
-#     - Clusters that do not exceed the limit are separated.
-# - The process ends when:
-#     - there are no more clusters that exceed the established relationship or
-#     - the maximum number of rounds is exceeded
-
 
 image = Image.open('workflow_iRaPCA.png')
 st.image(image, caption='Clustering Workflow')
 
-
-#st.markdown(":rocket:" "Fast tutorial [iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP)")
 st.subheader(":rocket:" "**Fast Tutorial** " "[iRaPCA](https://www.youtube.com/watch?v=6HoBdFDY9Ic&ab_channel=LIDeBUNLP)")
 st.markdown(" ")
 
@@ -107,23 +93,22 @@ st.sidebar.header('Molecular descriptors')
 molecular_descriptors = st.sidebar.checkbox('Check ONLY if you have previously calculated the molecular descriptors')
 if molecular_descriptors == True:
     uploaded_file_1 = st.sidebar.file_uploader("Upload your molecular descriptors in a TXT file. Your file should have a column called 'NAME'", type=["txt"])
-    descriptores_calculados = "Si"
     st.sidebar.markdown("""
     [Example TXT molecular descriptor file](https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_descriptors.txt)
     """)
 
 else:
     st.sidebar.header('Upload your SMILES')
-    uploaded_file_1 = st.sidebar.file_uploader("Upload a TXT file with one SMILES per line", type=["txt"])
-    descriptores_calculados = "No"    
+    uploaded_file_1 = st.sidebar.file_uploader("Upload a CSV file with one SMILES per line", type=["csv"])
     st.sidebar.markdown("""
-    [Example TXT input file](https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_molecules.txt)
+    [Example CSV input file](https://raw.githubusercontent.com/Capigol/iRaPCA_v1/main/example_molecules.csv)
     """)
 
 clustering_setting = st.sidebar.checkbox('Check to change the default configuration')
 if clustering_setting == True:
     st.sidebar.header('Dimensionality reduction')    
     threshold_variance = st.sidebar.slider('Threshold variance', 0.00, 0.20, 0.05, 0.01)
+    random_subspace_seed = st.sidebar.checkbox('Random seed',value=False)
     num_subsets = st.sidebar.slider('Nº of subsets', 50, 250, 100, 50)
     num_descriptores = st.sidebar.slider('Nº subset descriptors', 50, 300, 200, 50)    
     coef_correlacion = st.sidebar.selectbox("correlation coefficient", ("pearson", "kendall","spearman"),0)
@@ -136,6 +121,8 @@ if clustering_setting == True:
     maximo_porcentaje_del_total = st.sidebar.slider('Max relation "cluster/total"', 0.0, 1.0, 0.3, 0.1)
     vueltas_maximas = st.sidebar.slider('Max nº of rounds', 1, 10, 5, 1)
     num_pca = st.sidebar.slider('PCAs', 2, 3, 2, 1)
+    smiles_standardization = st.sidebar.checkbox('Standardization of SMILES',value=True)
+
     ignore_error = st.sidebar.checkbox('Ignore error in SMILES',value=True)
     st.sidebar.header('Type of Plots')
     graficar_sunburnt = st.sidebar.checkbox('Sunburn',value=True)
@@ -144,7 +131,9 @@ if clustering_setting == True:
 
 # Default configuration:    
 else:   
+    smiles_standardization = True
     threshold_variance = 0.05
+    random_subspace_seed = False
     num_subsets = 100
     num_descriptores = 200
     coef_correlacion = "pearson"
@@ -178,7 +167,7 @@ If you are looking to contact us, please
 
 def calcular_descriptores(uploaded_file_1,descriptores_calculados):
     
-    if descriptores_calculados == "Si":
+    if molecular_descriptors == True:
         descriptores = pd.read_csv(uploaded_file_1, sep='\t', delimiter=None, header='infer', names=None)
         molecules_names = descriptores['NAME'].tolist()
         descriptores.drop(['NAME'], axis=1,inplace=True)
@@ -193,18 +182,63 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
         descriptores = descriptores.apply(pd.to_numeric, errors = 'coerce')
         descriptores = descriptores.dropna(axis=0,how="all")
         descriptores = descriptores.dropna(axis=1) 
-
+        
+        st.write("The initial dataset has " + str(descriptores.shape[0]) + " molecules and " + str(descriptores.shape[1]) + " descriptors")
+        return descriptores
     else:
         data1x = pd.DataFrame()
         suppl = []
-        st.markdown("**Step 1: Calculating descriptors**")
-    
-        for molecule in uploaded_file_1:
-            mol = Chem.MolFromSmiles(molecule)
-            suppl.append(mol)
-        calc = Calculator(descriptors, ignore_3D=True) 
+        st.markdown("**Step 1: Standarization and descriptor calculation**")
+        df_initial = pd.read_csv(uploaded_file_1)
+        if "SMILES" in df_initial:
+            list_of_smiles = df_initial["SMILES"]
+        else:
+            list_of_smiles = df_initial.iloc[:, 0]
+        s = Standardizer()
+
+        i = 0
         t = st.empty()
         problematic_smiles = []
+        rows_to_retain = []
+
+        for molecule in list_of_smiles:
+            if smiles_standardization == True:
+                t.markdown("Standardizing molecules: " + str(i+1) +"/" + str(len(list_of_smiles)))
+            i = i+1
+            try:
+                mol = Chem.MolFromSmiles(molecule)
+                if smiles_standardization == True:
+                # estandarizada = s.super_parent(mol)
+                    mol_sin_fragmento = s.fragment_parent(mol) #Return the fragment parent of a given molecule, the largest organic covalent unit in the molecule
+                    mol_sin_estereo = s.stereo_parent(mol_sin_fragmento, skip_standardize= True) #Return The stereo parentof a given molecule, has all stereochemistry information removed from tetrahedral centers and double bonds.
+                    mol_sin_carga = s.charge_parent(mol_sin_estereo, skip_standardize= True) #Return the charge parent of a given molecule,  the uncharged version of the fragment parent
+                    estandarizada = s.isotope_parent(mol_sin_carga, skip_standardize= True) #Return the isotope parent of a given molecule, has all atoms replaced with the most abundant isotope for that element.
+                    suppl.append(estandarizada)
+                    rows_to_retain.append(i -1)
+                else:
+                    suppl.append(mol)
+                    rows_to_retain.append(i -1)
+
+            except:
+                # st.write(f'Molecule {i} could not be standardized')
+                problematic_smiles.append(i)
+                # suppl.append(molecule)
+        if ignore_error == False and len(problematic_smiles) > 0:
+            st.error("*Oh no! There is a problem with descriptor calculation of some SMILES.*  :confused:")
+            st.markdown(f"*Please check your SMILES number: {str(problematic_smiles)}*")
+            st.stop()
+
+        else:
+            if len(problematic_smiles) > 0:
+                st.markdown("Lines " + str(problematic_smiles) + " have problematic (or empty) SMILES. We have omitted them.")
+            else:
+                st.markdown("All SMILES have been submitted correctly")
+
+        previuos_data = df_initial.iloc[rows_to_retain]
+            
+        calc = Calculator(descriptors, ignore_3D=True) 
+        t = st.empty()
+
         for i,mol in enumerate(suppl):
             if __name__ == "__main__":
                     if mol != None:
@@ -214,8 +248,11 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
                             resu = descriptor1.asdict()
                             solo_nombre = {'NAME' : f'SMILES_{i+1}'}
                             solo_nombre.update(resu)
-                            data1x = data1x.append(solo_nombre, ignore_index = True)
-                            t.markdown("Progress: Molecule " + str(i+1) +"/" + str(len(suppl)))   
+
+                            solo_nombre = pd.DataFrame.from_dict(data=solo_nombre,orient="index")
+                            data1x = pd.concat([data1x, solo_nombre],axis=1, ignore_index=True)
+                           
+                            t.markdown("Calculating descriptors " + str(i+1) +"/" + str(len(suppl)))   
                         except:
                             st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
                             st.markdown("**Please check your SMILES number: **" + str(i+1))
@@ -223,8 +260,8 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
                             st.write("[LISTo](https://share.streamlit.io/cbellera/listo/main/LISTo_v1.py)") 
                             st.stop()
                     else:
+                        pass
                         # if ignore_error == True:
-                        problematic_smiles.append(i)
                             # st.markdown("In line " + str(i+1) + " you have a problematic (or empty) SMILES. We have omitted it")
                         # else:
                         #     st.error("**Oh no! There is a problem with descriptor calculation of one SMILES.**  :confused:")
@@ -232,17 +269,17 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
                         #     st.markdown(" :point_down: **Try using our standarization tool before clustering **")
                         #     st.write("[LIDeB Standarization tool](https://share.streamlit.io/capigol/lbb-game/main/juego_lbb.py)")
                         #     st.stop()
-        if ignore_error == True:
-            if len(problematic_smiles) > 0:
-                st.markdown("Lines " + str(problematic_smiles) + " have problematic (or empty) SMILES. We have omitted them.")
-        else:
-            st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
-            st.markdown("**Please check your SMILES number: **" + str(problematic_smiles))
-            st.markdown(" :point_down: **Try using our standarization tool to fix the SMILES**")
-            st.write("[LISTo](https://share.streamlit.io/cbellera/listo/main/LISTo_v1.py)") 
+        # if ignore_error == True:
+        #     if len(problematic_smiles) > 0:
+        #         st.markdown("Lines " + str(problematic_smiles) + " have problematic (or empty) SMILES. We have omitted them.")
+        # else:
+        #     st.error("**Oh no! There is a problem with descriptor calculation of some SMILES.**  :confused:")
+        #     st.markdown("**Please check your SMILES number: **" + str(problematic_smiles))
+        #     st.markdown(" :point_down: **Try using our standarization tool to fix the SMILES**")
+        #     st.write("[LISTo](https://share.streamlit.io/cbellera/listo/main/LISTo_v1.py)") 
 
         t.markdown("Descriptor calculation have FINISHED")
-        
+        data1x = data1x.T
         descriptores = data1x.set_index('NAME',inplace=False).copy()
         descriptores = descriptores.reindex(sorted(descriptores.columns), axis=1)   
         descriptores.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -252,9 +289,11 @@ def calcular_descriptores(uploaded_file_1,descriptores_calculados):
         if descriptores_calculados != "Si":
             st.markdown(":point_down: **Here you can dowload the calculated descriptors**", unsafe_allow_html=True)
             st.markdown(filedownload3(descriptores), unsafe_allow_html=True)
-         
-    st.write("The initial dataset has " + str(descriptores.shape[0]) + " molecules and " + str(descriptores.shape[1]) + " descriptors")
-    return descriptores
+        st.write("The initial dataset has " + str(descriptores.shape[0]) + " molecules and " + str(descriptores.shape[1]) + " descriptors")
+        
+        return descriptores,previuos_data 
+    
+        
 
 #%%
 
@@ -278,25 +317,29 @@ def descriptores_baja_variancia(descriptores, vuelta, threshold_variance: float)
 def generar_subset(descriptores_ok, num_subsets: int, coef_correlacion: str, limite_correlacion: float, vuelta):
     subsets_ok=[]
     i=0
+    t = st.empty()
     while (i < num_subsets): 
-        
-        subset= descriptores_ok.sample(num_descriptores,axis=1,random_state=i)  
+        if random_subspace_seed == True:
+            subset= descriptores_ok.sample(num_descriptores,axis=1)
+        else:
+            subset= descriptores_ok.sample(num_descriptores,axis=1,random_state=i)  
         corr_matrix = subset.corr(coef_correlacion).abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
         to_drop = [column for column in upper.columns if any(upper[column] > limite_correlacion)]
         curado=subset.drop(subset[to_drop], axis=1)
         total_molec_subset = curado.shape[0]
         i = i+1
+        t.markdown("generating subsets: " + str(i+1) +"/" + str(num_subsets))
         subsets_ok.append(curado)
-        tamanios = []
-        # st.write(curado)
-        for x in subsets_ok:
-            tamanios.append(x.shape[1])
-    st.markdown(f"**Round: {vuelta}**")
-    if round != 1:
-        st.write("- Each subset has: " + str(total_molec_subset) + " molecules")
-    st.write("- The average number of descriptors by subset is: " + str(round(mean(tamanios),2)))
-    return subsets_ok
+    #     tamanios = []
+    #     # st.write(curado)
+    #     for x in subsets_ok:
+    #         tamanios.append(x.shape[1])
+    # st.markdown(f"**Round: {vuelta}**")
+    # if round != 1:
+    #     st.write("- The subset has: " + str(total_molec_subset) + " molecules")
+    # st.write("- The average number of descriptors by subset is: " + str(round(mean(tamanios),2)))
+    return subsets_ok, total_molec_subset
 
 #%%
 
@@ -329,8 +372,9 @@ def PCA_clustering(descriptores_normalizados, range_n_clusters, num_pca: float, 
 def clustering(subsets_ok, min_desc_subset: int, max_desc_subset: int, range_n_clusters, num_pca: int):
     siluetas = []
     subsets_seleccionados = []
+    t = st.empty()
     for i, subset in enumerate(subsets_ok):
-        
+        t.markdown("clustering subsets: " + str(i+1) +"/" + str(num_subsets))
         if min_desc_subset < len(subset.columns) < max_desc_subset:
             descriptores_normalizados = normalizar_descriptores(subset)
             if max_n_clusters > len(descriptores_normalizados.index):
@@ -338,7 +382,7 @@ def clustering(subsets_ok, min_desc_subset: int, max_desc_subset: int, range_n_c
                 range_n_clusters = list(range(min_n_clusters,len(descriptores_normalizados.index),1))
             siluetas = PCA_clustering(descriptores_normalizados, range_n_clusters, num_pca, siluetas)
             subsets_seleccionados.append(i)
-    st.write("- Subsets with a number of descriptors between the limits: " + str(len(subsets_seleccionados)))
+    # st.write("- Subsets with a number of descriptors between the limits: " + str(len(subsets_seleccionados)))
 
     tabla_final = pd.DataFrame(siluetas).T
     tabla_final.columns = subsets_seleccionados
@@ -358,18 +402,20 @@ def grafica_silhouette(subsets_seleccionados,tabla_final,num_pca: int, range_n_c
                             mode='lines+markers', name= f'Subset {num}', 
                             hovertemplate = "Subset = %s<br>Clusters = %%{x}<br>Silhouette = %%{y} <extra></extra>" % num))
         
-        fig.update_layout(title = "Silhouette coefficient vs K for each subset", title_x=0.5,
-                          title_font = dict(size=28, family='Calibri', color='black'),
+        fig.update_layout(title = 'Number of clusters for K-means vs Silhouette coefficient',
+                          plot_bgcolor = 'rgb(256,256,256)',
+                          title_font = dict(size=25, family='Calibri', color='black'),
                           legend_title_text = "Subsets", 
                           legend_title_font = dict(size=18, family='Calibri', color='black'),
                           legend_font = dict(size=15, family='Calibri', color='black'))
-        fig.update_xaxes(title_text='K (Number of clusters)', range = [min_n_clusters - 0.5, max_n_clusters + 0.5],
+        fig.update_xaxes(title_text='K (number of clusters)', range = [1.5, 20.5],
+                         showline=True, linecolor='black', gridcolor='lightgrey', zerolinecolor = 'lightgrey',
                          tickfont=dict(family='Arial', size=16, color='black'),
-                         title_font = dict(size=25, family='Calibri', color='black'))
-        fig.update_yaxes(title_text='Silhouette coefficient', 
+                         title_font = dict(size=20, family='Calibri', color='black'))
+        fig.update_yaxes(title_text='SIL coefficient',
+                         showline=True, linecolor='black', gridcolor='lightgrey', zerolinecolor = 'lightgrey',
                          tickfont=dict(family='Arial', size=16, color='black'),
-                         title_font = dict(size=25, family='Calibri', color='black'))
-        fig.update_layout(margin = dict(t=60,r=20,b=20,l=20), autosize = True)
+                         title_font = dict(size=20, family='Calibri', color='black'))
 
         st.plotly_chart(fig)
     return
@@ -388,7 +434,19 @@ def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, clust
     kmeans_new = KMeans(n_clusters=cluster_mejor, random_state=10).fit(pcas)
     df_molecula_cluster_actual = pd.DataFrame(kmeans_new.fit_predict(pcas))
     df_molecula_cluster_actual.rename(columns={0: 'CLUSTER'},inplace = True)
+    df_molecula_cluster_actual['CLUSTER'] = df_molecula_cluster_actual['CLUSTER'] + 1    
     df_molecula_cluster_actual.index = subset_seleccionado.index.tolist()
+    
+    # ordeno los cluster por tamaño para que el mas grande sea el 1
+    cluster_ordenados = []
+    df_contado = pd.DataFrame(df_molecula_cluster_actual['CLUSTER'].value_counts())
+    df_contado['cluster_nuevo'] = list(range(1, len(df_contado)+1))
+    for j in range(len(df_molecula_cluster_actual)):
+        for i in range(1, len(df_contado)+1):
+            if df_molecula_cluster_actual['CLUSTER'][j] == i:
+                cluster_ordenados.append(df_contado['cluster_nuevo'][i])
+    df_molecula_cluster_actual['CLUSTER'] = cluster_ordenados    
+    
     if vuelta == 1:
         df_cluster_padre = pd.DataFrame(pd.Series([cluster_actual for cluster_actual in df_molecula_cluster_actual['CLUSTER']]))
     else:
@@ -414,21 +472,28 @@ def moleculas_en_cluster_PCA_clustering(subset_seleccionado, num_pca: int, clust
 def grafica_scatter(moleculas_cluster,subset_mejor,cluster_mejor):
     if graficar_scatter:
         tabla_final_moleculas = moleculas_cluster.copy()
-        tabla_final_moleculas['CLUSTER'] = tabla_final_moleculas['CLUSTER'].astype(str)
-        if num_pca == 2:
-            fig2 = plt1.scatter(tabla_final_moleculas, x = 'PCA_1', y = 'PCA_2', color = 'CLUSTER',
-                               hover_name = tabla_final_moleculas.index, 
-                               title = f'PCA1 vs PCA2 for subgroup {subset_mejor} and k = {cluster_mejor}')
-        if num_pca == 3:
-            fig2 = plt1.scatter_3d(tabla_final_moleculas, x='PCA_1', y='PCA_2', z='PCA_3',
-              color='CLUSTER',hover_name = tabla_final_moleculas.index, 
-              title = f'PCA_1 vs PCA_2 vs PCA_3 for subgroup {subset_mejor} and k = {cluster_mejor}')
-        fig2.update_traces(marker=dict(size=15, line=dict(width=2)))
-        fig2.update_layout(legend_title="Cluster", title_x=0.5, font = dict(size = 20, family = "Calibri", color = 'black'))
-        fig2.update_layout(margin = dict(t=60,r=20,b=20,l=20), autosize = True)
+        tabla_final_moleculas.rename(columns = {'PCA_1': 'PC_1', 'PCA_2': 'PC_2', 'Cluster, padre': 'Cluster'}, inplace = True)
+        tabla_final_moleculas['Cluster'] = tabla_final_moleculas['Cluster'].astype(str)
+        
+        fig2 = plt1.scatter(tabla_final_moleculas, x = 'PC_1', y = 'PC_2', color = 'Cluster',
+                           hover_name = tabla_final_moleculas.index, 
+                           title = f'Scatter Plot of PC 1 vs PC 2 for subset {subset_mejor} and K {cluster_mejor}')
+        fig2.update_layout(legend_title="Cluster", plot_bgcolor = 'rgb(256,256,256)',
+                           title_font = dict(size=25, family='Calibri', color='black'),
+                           legend_title_font = dict(size=18, family='Calibri', color='black'),
+                           legend_font = dict(size=15, family='Calibri', color='black'))
+        fig2.update_traces(marker=dict(size=15, line=dict(width=1)))
+        fig2.update_xaxes(title_text="PC 1", showline=True, linecolor='black', 
+                          gridcolor='lightgrey', zerolinecolor = 'lightgrey',
+                          tickfont=dict(family='Arial', size=16, color='black'),
+                          title_font = dict(size=20, family='Calibri', color='black'))
+        fig2.update_yaxes(title_text="PC 2", showline=True, linecolor='black', 
+                          gridcolor='lightgrey', zerolinecolor = 'lightgrey',
+                          tickfont=dict(family='Arial', size=16, color='black'),
+                          title_font = dict(size=20, family='Calibri', color='black'))     
         st.plotly_chart(fig2)
     return
-
+      
 #%%
 
 ### Random cluster evaluations ###
@@ -483,14 +548,7 @@ def coeficientes_clustering(pcas, df_molecula_cluster_actual, cluster_mejor, mol
     if vuelta == 1:
         st.markdown(f'**The Silhouette score is: {silhouette_avg}**')
         st.write(f'The Silhouette Score for random cluster is: {sil_random}') 
-        # st.markdown(f'The BIC score is: {bic_score}')
-        st.write(f'The Davies Bouldin score is : {db_score}')
-        st.write(f'The Davies Bouldin score for random cluster is : {db_random}')    
-        st.write(f'The Calinski Harabasz score is : {ch_score}')
-        st.write(f'The Calinski Harabasz_score for random cluster is : {ch_random}')       
-        st.write(f'The Dunn Index is : {dunn_score}')
-        st.write(f'The Dunn Index for random cluster is : {dunn_random}')
-    validation_round = [silhouette_avg, sil_random, sil_random_st, db_score, db_random, db_random_st,ch_score, ch_random, ch_random_st,dunn_score, dunn_random, dunn_random_st]
+    validation_round = [vuelta,silhouette_avg, sil_random, sil_random_st, db_score, db_random, db_random_st,ch_score, ch_random, ch_random_st,dunn_score, dunn_random, dunn_random_st]
     st.write("-"*50)
     return validation_round
 
@@ -553,20 +611,43 @@ def asignar_moleculas_para_RDCPCA(lista_cluster_para_seguir, lista_cluster_molec
 
 #%%
 
+### Sunburn plot of all the molecules ###
+
+def sunburn_plot(sunburnt):
+    sunburnt.insert(loc = 0, column = 'All', value = 'All')
+    sunburnt = sunburnt.fillna(' ')
+    sunburnt['Molecules'] = 1
+
+    fig3 = plt1.sunburst(sunburnt, path = sunburnt.iloc[:,0:-1], values = 'Molecules')
+    fig3.update_layout(title = "Sunburst Plot", title_x=0.5,
+                       title_font = dict(size=25, family='Calibri', color='black'))
+    fig3.update_layout(margin = dict(t=60,r=20,b=20,l=20), autosize = True)
+    
+    st.plotly_chart(fig3)
+    return
+
+#%%
+ 
 ### Bar plot of molecule distribution ###
 
 def bar_plot_counts(dataframe_final_1):
-    dataframe_final_1.sort_index(axis=0, ascending=True,inplace=True)
-    x = []
-    for a in list(dataframe_final_1.index.values):
-        x.append(a[0])
-    ax = sns.barplot(x = x ,y = dataframe_final_1["Moleculas"] , palette="deep")
-    plt.xticks(rotation=45)
-    plt.xlabel("Cluster")
-    plt.ylabel("Nº of members")
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-    st.pyplot()
-    return ax
+    
+    fig4 = plt1.bar(dataframe_final_1, x = dataframe_final_1.index.get_level_values(0), y = 'Molecules', 
+                   color = dataframe_final_1.index.get_level_values(0))
+    
+    fig4.update_layout(legend_title="Cluster", plot_bgcolor = 'rgb(256,256,256)',
+                       legend_title_font = dict(size=18, family='Calibri', color='black'),
+                       legend_font = dict(size=15, family='Calibri', color='black'))
+    fig4.update_xaxes(title_text='Cluster', showline=True, linecolor='black', 
+                      gridcolor='lightgrey', zerolinecolor = 'lightgrey',
+                      tickfont=dict(family='Arial', size=16, color='black'),
+                      title_font = dict(size=20, family='Calibri', color='black'))
+    fig4.update_yaxes(title_text='Amount of molecules', showline=True, linecolor='black', 
+                      gridcolor='lightgrey', zerolinecolor = 'lightgrey',
+                      tickfont=dict(family='Arial', size=16, color='black'),
+                      title_font = dict(size=20, family='Calibri', color='black'))
+    st.plotly_chart(fig4)
+    return fig4
 
 #%%
 ### Settings file ###
@@ -579,6 +660,7 @@ def setting_info(vuelta,dataframe_final_1):
     settings.append(["Date clustering was performed: " , fecha])
     settings.append(["Seetings:",""])
     settings.append(["Threshold variance:", str(threshold_variance)])
+    settings.append(["Random seed:", str(random_subspace_seed)])
     settings.append(["Number of subsets:", str(num_subsets)])
     settings.append(["Number of descriptors by subset:", str(num_descriptores)])
     settings.append(["Correlation coefficient:", str(coef_correlacion)])
@@ -592,18 +674,11 @@ def setting_info(vuelta,dataframe_final_1):
     settings.append(["PCAs:", str(num_pca)])
     settings.append(["",""])
     settings.append(["Results:",""])
-    # silhouette_mean = mean(todos_silhouette)
-    # if len(todos_silhouette) > 1:
-    #     silhouette_sd = stdev(todos_silhouette)
-    # else:
-    #     silhouette_sd = 0
-    # settings.append(["Mean of the silhouette coefficient:", str(round(silhouette_mean, 4)) + " +/- " + str(round(silhouette_sd,4))])
     settings.append(["Total rounds :", str(vuelta)])
     settings.append(["Total clusters :", str(len(dataframe_final_1))])
     settings.append(["",""])
     settings.append(["To cite the application, please reference: ","XXXXXXXXXXX"])   
     settings_df = pd.DataFrame(settings)
-    
     return settings_df
 
 
@@ -611,12 +686,18 @@ def setting_info(vuelta,dataframe_final_1):
 ### Exporting files ###
 
 def filedownload(df):
-    csv = df.to_csv(index=True,header=True)
-    b64 = base64.b64encode(csv.encode()).decode()  # strings <-> bytes conversions
-    href = f'<a href="data:file/csv;base64,{b64}" download="cluster_assignations.csv">Download CSV File with the cluster assignations</a>'
+    if molecular_descriptors:
+        csv = df.to_csv(index=True,header=True)
+        b64 = base64.b64encode(csv.encode()).decode()  # strings <-> bytes conversions
+        href = f'<a href="data:file/csv;base64,{b64}" download="cluster_assignations.csv">Download CSV File with the cluster assignations</a>'
+    else:
+        csv = df.to_csv(index=False,header=True)
+        b64 = base64.b64encode(csv.encode()).decode()  # strings <-> bytes conversions
+        href = f'<a href="data:file/csv;base64,{b64}" download="cluster_assignations.csv">Download CSV File with the cluster assignations</a>'
     return href
 
 def filedownload1(df):
+
     csv = df.to_csv(index=True,header=True)
     b64 = base64.b64encode(csv.encode()).decode()  # strings <-> bytes conversions
     href = f'<a href="data:file/csv;base64,{b64}" download="cluster_distributions.csv">Download CSV File with the cluster distributions</a>'
@@ -635,7 +716,7 @@ def filedownload3(df):
     return href
 
 def filedownload4(df):
-    csv = df.to_csv(index=True,header=True)
+    csv = df.to_csv(index=False,header=True)
     b64 = base64.b64encode(csv.encode()).decode()  # strings <-> bytes conversions
     href = f'<a href="data:file/csv;base64,{b64}" download="Validations.csv">Download CSV File with the validations</a>'
     return href
@@ -653,7 +734,10 @@ def clustering_final_function(uploaded_file_1):
     lista_cluster_moleculas = []
     lista_descriptores = []
     validation_all = []
-    descriptores = calcular_descriptores(uploaded_file_1,vuelta)
+    if molecular_descriptors:
+        descriptores = calcular_descriptores(uploaded_file_1,vuelta)
+    else:
+        descriptores, previuos_data = calcular_descriptores(uploaded_file_1,vuelta)
     lista_descriptores.append(descriptores)
 
     while len(lista_nuevas_moleculas)>0 and vuelta <= vueltas_maximas:
@@ -661,18 +745,27 @@ def clustering_final_function(uploaded_file_1):
         lista_subsets_ok = []
         lista_tablas_finales = []
         lista_final_conteo = []
+        lista_subsets_seleccionados = []
+        lista_total_molec_subset =[]
         sunburnt_nuevos = pd.Series(dtype="float64")
 
         for descriptores_ in lista_descriptores:
             descriptores_ok = descriptores_baja_variancia(descriptores_, vuelta, threshold_variance)
-            subsets_ok = generar_subset(descriptores_ok, num_subsets, coef_correlacion, limite_correlacion,vuelta)
+            subsets_ok, total_molec_subset = generar_subset(descriptores_ok, num_subsets, coef_correlacion, limite_correlacion,vuelta)
             lista_subsets_ok.append(subsets_ok)
-
-        for subsets_ok_ in lista_subsets_ok:
+            lista_total_molec_subset.append(total_molec_subset)
+            tabla_final, subsets_seleccionados = clustering(subsets_ok, min_desc_subset, max_desc_subset, range_n_clusters, num_pca)
+            lista_tablas_finales.append(tabla_final)
+            lista_subsets_seleccionados.append(subsets_seleccionados)
+                
+        lista_cluster_moleculas = []
+        for j, tabla_final_ in enumerate(lista_tablas_finales):
             try:
-                tabla_final, subsets_seleccionados = clustering(subsets_ok_, min_desc_subset, max_desc_subset, range_n_clusters, num_pca)
-                grafica_silhouette(subsets_seleccionados,tabla_final, num_pca, range_n_clusters, limite_correlacion)
-                lista_tablas_finales.append(tabla_final)
+                silhouette_max = tabla_final_.values.max()
+                todos_silhouette.append(silhouette_max)
+                cluster_mejor, subset_mejor = getIndexes(tabla_final_, silhouette_max)
+                subset_mejor_sil = lista_subsets_ok[j][subset_mejor]
+                pcas, cluster_moleculas, final_conteo = moleculas_en_cluster_PCA_clustering(subset_mejor_sil, num_pca, cluster_mejor, subset_mejor, lista_cluster_padres[j], vuelta, descriptores)
             except ValueError:
                 if vuelta == 1:
                     st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
@@ -682,15 +775,14 @@ def clustering_final_function(uploaded_file_1):
                         for index, row in cluster_moleculas_.iterrows():
                             moleculas_compiladas[index] = row['Cluster, padre']
                     st.error(f'For the selected Threshold correlation filter ({limite_correlacion}) none of the subsets have between {min_desc_subset} and {max_desc_subset} descriptors in round {vuelta}')
-                    break
-
-        lista_cluster_moleculas = []
-        for j, tabla_final_ in enumerate(lista_tablas_finales):
-            silhouette_max = tabla_final_.values.max()
-            todos_silhouette.append(silhouette_max)
-            cluster_mejor, subset_mejor = getIndexes(tabla_final_, silhouette_max)
-            subset_mejor_sil = lista_subsets_ok[j][subset_mejor]
-            pcas, cluster_moleculas, final_conteo = moleculas_en_cluster_PCA_clustering(subset_mejor_sil, num_pca, cluster_mejor, subset_mejor, lista_cluster_padres[j], vuelta, descriptores)
+                    st.stop()
+          
+            st.markdown(f"**Round: {vuelta}**")
+            st.write("- Subsets with a number of descriptors between the limits: " + str(len(lista_subsets_seleccionados[j])))
+            if round != 1:
+                st.write("- The subset has: " + str(lista_total_molec_subset[j]) + " molecules")
+            st.write("- The average number of descriptors by subset is: " + str(round(mean([x.shape[1] for x in lista_subsets_ok[j]]),2)))
+            grafica_silhouette(lista_subsets_seleccionados[j],tabla_final_, num_pca, range_n_clusters, limite_correlacion)
             grafica_scatter(cluster_moleculas,subset_mejor,cluster_mejor)
             st.write(f'Maximum coefficient of silhouette obtained was obtained in the subset {subset_mejor} with {cluster_mejor} clusters\n')
     
@@ -730,50 +822,50 @@ def clustering_final_function(uploaded_file_1):
     
         vuelta += 1
         
-    if graficar_sunburnt:
-        sunburnt.insert(loc = 0, column = 'All', value = 'All')
-        sunburnt = sunburnt.fillna(' ')
-        sunburnt['Moléculas'] = 1
-
-        fig3 = plt1.sunburst(sunburnt, path = sunburnt.iloc[:,0:-1], values = 'Moléculas')
-        fig3.update_layout(title = "Sunburst Plot", title_x=0.5,
-        title_font = dict(size=28, family='Calibri', color='black'))
-        fig3.update_layout(margin = dict(t=60,r=20,b=20,l=20),
-        autosize = True)
-        
     dataframe_final = pd.DataFrame.from_dict(moleculas_compiladas, orient = 'index')
     dataframe_final.rename(columns = {0: 'CLUSTER'}, inplace = True)
-    dataframe_final.index.rename("NAME", inplace = True)
-    # dataframe_final.sort_index(inplace=True)
     dataframe_final['key'] = dataframe_final.index
     dataframe_final['key'] = dataframe_final['key'].str.split('_').str[1].astype(int)
     dataframe_final = dataframe_final.sort_values('key', ascending=True).drop('key', axis=1)
-    dataframe_final_1 = dataframe_final.value_counts().to_frame()
-    dataframe_final_1.rename(columns = {0: 'Moleculas'}, inplace = True)
-            
+    
+    if molecular_descriptors:
+        dataframe_final.index.rename("NAME", inplace = True)
+    else:
+        previuos_data.reset_index(drop = True, inplace = True)
+        dataframe_final.reset_index(drop = True, inplace = True)
+        dataframe_final = previuos_data.join(dataframe_final, how = 'right')    
+
+    dataframe_final_1 = dataframe_final['CLUSTER'].value_counts().to_frame()
+    dataframe_final_1.rename(columns = {'CLUSTER': 'Molecules'}, inplace = True)
+     
     validation_final = pd.DataFrame(validation_all)
-    validation_final.columns = ["Silouette", "random silhoutte", "SD random sil", "DB Score", "DB random", "SD DB random","CH score", "CH random", "SD CH random", "Dunn score", "Dunn Random", "Dunn SD random"]
+    validation_final.columns = ["Round","SIL score", "SIL random", "SD SIL random", "DB score", "DB random", "SD DB random","CH score", "CH random", "SD CH random", "Dunn score", "Dunn random", "SD Dunn random"]
+
     
     if len(lista_nuevas_moleculas) == 0:
         vuelta-=1
-        st.write(f'\nThere is no more cluster with a relationship greater than selected value: {maximo_porcentaje_del_total}\n')
+        st.success(f'The {descriptores.shape[0]} molecules were distributed in {len(dataframe_final_1)} clusters \n\nThere is no more cluster with a relationship greater than selected value: {maximo_porcentaje_del_total}\n')
     else:
         if vuelta == vueltas_maximas+1:
             vuelta-=1
-            st.write(f'\nThe maximum number of laps was reached {vueltas_maximas}\n')
-    
-    # st.write(f'\nAfter {vuelta} rounds the mean of the silhouette coefficients was {round(mean(todos_silhouette), 4)}')
-    st.write(f'The {descriptores.shape[0]} molecules were distributed in {len(dataframe_final_1)} clusters')
-    
+            st.success(f'The {descriptores.shape[0]} molecules were distributed in {len(dataframe_final_1)} clusters \n\nThe maximum number of rounds was reached {vueltas_maximas}\n')
+            
     if graficar_sunburnt == True:
         st.markdown(":point_down: **Here you can see the Sunburst Plot**", unsafe_allow_html=True)
-        st.plotly_chart(fig3)
+        sunburn_plot(sunburnt)
+        
 
     st.markdown(":point_down: **Here you can see the cluster distribution**", unsafe_allow_html=True)
     plot = bar_plot_counts(dataframe_final_1)
     
     st.markdown(":point_down: **Here you can download the cluster assignations**", unsafe_allow_html=True)
     st.markdown(filedownload(dataframe_final), unsafe_allow_html=True)
+    st.download_button(
+     label="Download data as CSV",
+     data=filedownload(dataframe_final),
+     file_name='large_df.csv',
+     mime='text/csv',)
+    #st.markdown(filedownload(dataframe_final), unsafe_allow_html=True)
 
     st.markdown(":point_down: **Here you can download a table with the cluster distibutions**", unsafe_allow_html=True)
     st.markdown(filedownload1(dataframe_final_1), unsafe_allow_html=True)
@@ -792,9 +884,9 @@ if uploaded_file_1 is not None:
     if run == True:
         clustering_final_function(uploaded_file_1)
 else:
-    st.info('Awaiting for TXT file to be uploaded.')
+    st.info('Awaiting for CSV file to be uploaded.')
     if st.button('Press to run with the Example Dataset'):
-        uploaded_file_1 = open("example_molecules.txt","r")
+        uploaded_file_1 = open("example_molecules.csv","r")
         st.markdown("**Running with the example dataset**", unsafe_allow_html=True)
         clustering_final_function(uploaded_file_1)
 
